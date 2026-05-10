@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Result | SSLC IT Exam 2026</title>
+  <link rel="stylesheet" href="css/exam.css">
+</head>
+<body>
+
+<header class="exam-header">
+  <!-- TAP THIS LOGO 5 TIMES TO OPEN TEACHER PANEL -->
+  <div class="logo-circle" id="secretTap" style="cursor:default; user-select:none;">IT</div>
+  <div class="header-text">
+    <h1>SSLC IT Public Examination 2026</h1>
+    <p>Result &amp; Performance Report</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- RESULT ACCESS CARD -->
+  <div class="card" id="accessCard">
+    <div class="section-title"><div class="icon">🔒</div>Result Access</div>
+    <div class="section-sub">Enter the result password to view marks and performance report.</div>
+    <div class="pwd-group">
+      <label for="rpwd">Result Password</label>
+      <input type="password" id="rpwd" placeholder="••••••" autocomplete="off"
+             onkeydown="if(event.key==='Enter') showResult()">
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" onclick="showResult()">📊 &nbsp;View Result</button>
+    </div>
+  </div>
+
+  <!-- RESULT OUTPUT -->
+  <div id="resultSection" style="display:none">
+    <div class="score-hero">
+      <div class="score-value" id="heroScore">—</div>
+      <div class="score-label">Total Score out of 10</div>
+      <div id="gradeBox"></div>
+    </div>
+    <div class="score-breakdown">
+      <div class="score-card">
+        <div class="sc-value" id="mcqScore">—</div>
+        <div class="sc-label">MCQ Score<br><small style="font-size:10px">(out of 5)</small></div>
+      </div>
+      <div class="score-card">
+        <div class="sc-value" id="vsaScore">—</div>
+        <div class="sc-label">VSA Score<br><small style="font-size:10px">(out of 5)</small></div>
+      </div>
+      <div class="score-card">
+        <div class="sc-value" id="totalScore">—</div>
+        <div class="sc-label">Total<br><small style="font-size:10px">(out of 10)</small></div>
+      </div>
+    </div>
+    <div class="wrong-list">
+      <div class="wrong-list-header">❌ Incorrect / Missing Answers</div>
+      <div id="wrongListBody"></div>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Report</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- =====================================================
+     TEACHER PANEL MODAL
+     Hidden — opened by tapping the "IT" logo 5 times
+     ===================================================== -->
+<div class="overlay" id="teacherOverlay">
+  <div class="modal" style="max-width:460px">
+
+    <!-- Step 1: Password -->
+    <div id="teacherStep1">
+      <h3>🔧 Teacher Panel</h3>
+      <p>Enter teacher password to continue.</p>
+      <div class="pwd-group" style="margin:16px 0">
+        <input type="password" id="teacherPwd" placeholder="Teacher password"
+               style="width:100%;text-align:center;letter-spacing:3px"
+               onkeydown="if(event.key==='Enter') teacherLogin()">
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn-primary" onclick="teacherLogin()">Login</button>
+        <button class="btn btn-outline" onclick="closeTeacher()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Teacher Actions -->
+    <div id="teacherStep2" style="display:none">
+      <h3>🔧 Teacher Panel</h3>
+
+      <!-- Firebase status -->
+      <div id="fbStatus" style="font-size:13px;color:var(--muted);margin-bottom:16px;text-align:center">
+        Connecting to Firebase…
+      </div>
+
+      <!-- Exam lock status -->
+      <div id="lockStatus" style="
+        padding:14px; border-radius:8px; text-align:center;
+        font-weight:700; font-size:15px; margin-bottom:20px;
+        background:var(--bg); border:1px solid var(--border)">
+        —
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+
+        <!-- OPEN EXAM (students can start) -->
+        <button class="btn btn-primary" onclick="setExamState('open')" style="width:100%">
+          ✅ &nbsp;Open Exam — Allow Students to Start
+        </button>
+
+        <!-- LOCK EXAM (no new starts) -->
+        <button class="btn btn-outline" onclick="setExamState('locked')" style="width:100%">
+          🔒 &nbsp;Lock Exam — Prevent New Starts
+        </button>
+
+        <!-- RESET ALL DEVICES -->
+        <button class="btn btn-danger" onclick="confirmReset()" style="width:100%">
+          🗑 &nbsp;Reset All Devices Now
+        </button>
+
+      </div>
+
+      <div style="margin-top:20px; text-align:center">
+        <button class="btn btn-outline" onclick="closeTeacher()" style="font-size:14px;padding:8px 20px">
+          Close
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RESET CONFIRM MODAL -->
+<div class="overlay" id="resetConfirmOverlay">
+  <div class="modal">
+    <h3>⚠️ Reset All Devices?</h3>
+    <p>This will immediately clear exam data on <strong>every student device</strong> and send them back to the start page.</p>
+    <div class="btn-wrap">
+      <button class="btn btn-danger" onclick="doReset()">Yes, Reset All</button>
+      <button class="btn btn-outline" onclick="closeResetConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="exam-footer">
+  SSLC IT Public Exam 2026 &nbsp;·&nbsp; Result Portal &nbsp;·&nbsp; Kerala
+</div>
+
+<!-- =====================================================
+     FIREBASE SDK
+     ===================================================== -->
+<script type="module">
+import { initializeApp }             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc,
+         onSnapshot, getDoc }        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ======================================================
+   🔴 PASTE YOUR FIREBASE CONFIG HERE
+   (from Firebase Console → Project Settings → Your apps)
+   ====================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyCUpkjARbvoFK8UR9MZkMuqTuzZlEM2wXY",
+    authDomain: "c-exam-2027.firebaseapp.com",
+    projectId: "c-exam-2027",
+    storageBucket: "c-exam-2027.firebasestorage.app",
+    messagingSenderId: "35592355419",
+    appId: "1:35592355419:web:9b6cf363bbb143e3b3497e"
+  };
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const examRef = doc(db, "exam", "control");
+
+/* ======================================================
+   STUDENT LISTENER
+   Every student page listens to Firebase in real time.
+   If teacher resets → all devices cleared instantly.
+   ====================================================== */
+onSnapshot(examRef, (snap) => {
+  if (!snap.exists()) return;
+  const data = snap.data();
+
+  // Teacher pressed Reset → clear this device and go to start
+  if (data.command === "reset") {
+    const ts = data.resetAt || 0;
+    const lastReset = parseInt(localStorage.getItem("lastResetAt") || "0");
+
+    // Only act if this is a NEW reset (not one we already processed)
+    if (ts > lastReset) {
+      localStorage.clear();
+      localStorage.setItem("lastResetAt", ts);
+      // Small delay so UI doesn't flash
+      setTimeout(() => window.location.replace("index.html"), 800);
+    }
+  }
+
+  // Update teacher panel lock status if open
+  updateLockStatus(data.state);
+});
+
+/* ======================================================
+   TEACHER PANEL FUNCTIONS (exposed to window)
+   ====================================================== */
+
+// Check Firebase connection and show current state
+window.teacherPanelOpened = async function() {
+  try {
+    const snap = await getDoc(examRef);
+    document.getElementById("fbStatus").textContent = "✅ Connected to Firebase";
+    document.getElementById("fbStatus").style.color = "var(--success)";
+    if (snap.exists()) updateLockStatus(snap.data().state);
+  } catch(e) {
+    document.getElementById("fbStatus").textContent = "❌ Firebase not connected. Check config.";
+    document.getElementById("fbStatus").style.color = "var(--danger)";
+  }
+};
+
+window.setExamState = async function(state) {
+  try {
+    await setDoc(examRef, { state }, { merge: true });
+    updateLockStatus(state);
+    toast(state === "open" ? "Exam opened for students." : "Exam locked.", "success");
+  } catch(e) {
+    toast("Firebase error: " + e.message, "danger");
+  }
+};
+
+window.doReset = async function() {
+  try {
+    const ts = Date.now();
+    await setDoc(examRef, {
+      command: "reset",
+      resetAt: ts,
+      state:   "open"   // auto-open after reset
+    });
+    // Also clear THIS device (teacher's device)
+    localStorage.clear();
+    document.getElementById("resetConfirmOverlay").classList.remove("active");
+    closeTeacher();
+    toast("All devices reset! Students redirected to start.", "success");
+  } catch(e) {
+    toast("Firebase error: " + e.message, "danger");
+  }
+};
+
+function updateLockStatus(state) {
+  const el = document.getElementById("lockStatus");
+  if (!el) return;
+  if (state === "open") {
+    el.textContent   = "🟢 Exam is OPEN — Students can start";
+    el.style.background = "var(--success-lt)";
+    el.style.color      = "var(--success)";
+    el.style.border     = "1px solid #a3d9b5";
+  } else if (state === "locked") {
+    el.textContent   = "🔴 Exam is LOCKED — No new starts";
+    el.style.background = "var(--danger-lt)";
+    el.style.color      = "var(--danger)";
+    el.style.border     = "1px solid #f5c6c2";
+  } else {
+    el.textContent = "⚪ Status unknown";
+  }
+}
+
+</script>
+
+<script>
+/* ======================================================
+   PAGE GUARD
+   ====================================================== */
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => {
+  history.pushState(null, "", location.href);
+});
+
+(function guard() {
+  const stage = localStorage.getItem("examStage");
+  if (!stage)           window.location.replace("index.html");
+  if (stage === "mcq")  window.location.replace("exam_mcq.html");
+  if (stage === "vsa")  window.location.replace("exam_vsa.html");
+})();
+
+/* ======================================================
+   CONFIG
+   ====================================================== */
+const CONFIG = {
+  resultPassword:  "2",    // 🔴 CHANGE RESULT PASSWORD
+  teacherPassword: "Alees", // 🔴 CHANGE TEACHER PASSWORD
+  mcqMarks:        0.5,
+  vsaHalfMark:     0.5
+};
+
+const MCQ_ANSWERS = {
+  mcq1:"D", mcq2:"A", mcq3:"A", mcq4:"C", mcq5:"D",
+  mcq6:"C", mcq7:"B", mcq8:"C", mcq9:"A", mcq10:"C"
+};
+
+const VSA_ANSWERS = {
+  vsa1:["A","B"], vsa2:["A","E"], vsa3:["B","E"],
+  vsa4:["C","E"], vsa5:["A","E"]
+};
+
+/* ======================================================
+   SECRET TAP — tap logo 5 times to open teacher panel
+   ====================================================== */
+let tapCount = 0, tapTimer = null;
+
+document.getElementById("secretTap").addEventListener("click", () => {
+  tapCount++;
+  clearTimeout(tapTimer);
+
+  if (tapCount >= 5) {
+    tapCount = 0;
+    openTeacher();
+    return;
+  }
+
+  // Reset count if no tap within 2 seconds
+  tapTimer = setTimeout(() => { tapCount = 0; }, 2000);
+});
+
+/* ======================================================
+   TEACHER PANEL
+   ====================================================== */
+function openTeacher() {
+  document.getElementById("teacherOverlay").classList.add("active");
+  document.getElementById("teacherStep1").style.display = "block";
+  document.getElementById("teacherStep2").style.display = "none";
+  document.getElementById("teacherPwd").value = "";
+  setTimeout(() => document.getElementById("teacherPwd").focus(), 100);
+}
+
+function teacherLogin() {
+  const pwd = document.getElementById("teacherPwd").value;
+  if (pwd === CONFIG.teacherPassword) {
+    document.getElementById("teacherStep1").style.display = "none";
+    document.getElementById("teacherStep2").style.display = "block";
+    // Trigger Firebase connection check
+    if (window.teacherPanelOpened) window.teacherPanelOpened();
+  } else {
+    toast("Wrong teacher password.", "danger");
+    document.getElementById("teacherPwd").value = "";
+  }
+}
+
+function closeTeacher() {
+  document.getElementById("teacherOverlay").classList.remove("active");
+}
+
+function confirmReset() {
+  document.getElementById("resetConfirmOverlay").classList.add("active");
+}
+
+function closeResetConfirm() {
+  document.getElementById("resetConfirmOverlay").classList.remove("active");
+}
+
+/* ======================================================
+   SHOW RESULT
+   ====================================================== */
+function showResult() {
+  const pwd = document.getElementById("rpwd").value;
+  if (!pwd) { toast("Enter the result password.", "warn"); return; }
+  if (pwd !== CONFIG.resultPassword) {
+    toast("Incorrect result password.", "danger");
+    document.getElementById("rpwd").value = "";
+    return;
+  }
+
+  const mcqData = JSON.parse(localStorage.getItem("mcqAnswers")) || {};
+  const vsaData = JSON.parse(localStorage.getItem("vsaAnswers")) || {};
+
+  let mcqScore = 0, vsaScore = 0;
+  const wrongItems = [];
+
+  for (let q in MCQ_ANSWERS) {
+    if (mcqData[q] === MCQ_ANSWERS[q]) {
+      mcqScore += CONFIG.mcqMarks;
+    } else {
+      wrongItems.push({ type:"MCQ", label:q.toUpperCase(),
+        yours: mcqData[q] || "Not answered", correct: MCQ_ANSWERS[q] });
+    }
+  }
+
+  for (let q in VSA_ANSWERS) {
+    const correct  = VSA_ANSWERS[q];
+    const selected = vsaData[q] || [];
+    const missing  = correct.filter(o => !selected.includes(o));
+    correct.filter(o => selected.includes(o)).forEach(() => vsaScore += CONFIG.vsaHalfMark);
+    if (missing.length > 0) {
+      wrongItems.push({ type:"VSA", label:q.toUpperCase(),
+        yours:   selected.length ? selected.join(", ") : "Not answered",
+        correct: correct.join(", "), missing: missing.join(", ") });
+    }
+  }
+
+  const total = mcqScore + vsaScore;
+  const pct   = (total / 10) * 100;
+
+  document.getElementById("heroScore").textContent  = total.toFixed(1);
+  document.getElementById("mcqScore").textContent   = mcqScore.toFixed(1);
+  document.getElementById("vsaScore").textContent   = vsaScore.toFixed(1);
+  document.getElementById("totalScore").textContent = total.toFixed(1);
+
+  let grade, gradeClass;
+  if (pct >= 80)      { grade = "A+"; gradeClass = "pass"; }
+  else if (pct >= 60) { grade = "A";  gradeClass = "pass"; }
+  else if (pct >= 40) { grade = "B";  gradeClass = "pass"; }
+  else                { grade = "C";  gradeClass = "fail"; }
+
+  document.getElementById("gradeBox").innerHTML =
+    `<span class="score-grade ${gradeClass}">Grade: ${grade} &nbsp;|&nbsp; ${pct.toFixed(0)}%</span>`;
+
+  const body = document.getElementById("wrongListBody");
+  if (wrongItems.length === 0) {
+    body.innerHTML = `<div style="padding:20px;text-align:center;color:var(--success);font-weight:600;">
+      🎉 All answers correct! Perfect score.</div>`;
+  } else {
+    body.innerHTML = wrongItems.map(w => w.type === "MCQ" ? `
+      <div class="wrong-item">
+        <span class="wi-tag">MCQ · ${w.label}</span>
+        <div class="wi-detail">Your answer: <strong>${w.yours}</strong>
+          &nbsp;→&nbsp; Correct: <span class="correct">${w.correct}</span></div>
+      </div>` : `
+      <div class="wrong-item">
+        <span class="wi-tag">VSA · ${w.label}</span>
+        <div class="wi-detail">Your answer: <strong>${w.yours}</strong>
+          &nbsp;→&nbsp; Correct: <span class="correct">${w.correct}</span>
+          &nbsp;·&nbsp; <span style="color:var(--danger);font-size:13px;">Missing: ${w.missing}</span>
+        </div>
+      </div>`).join("");
+  }
+
+  document.getElementById("accessCard").style.display = "none";
+  document.getElementById("resultSection").style.display = "block";
+  document.getElementById("resultSection").scrollIntoView({ behavior:"smooth" });
+}
+
+/* ======================================================
+   TOAST
+   ====================================================== */
+function toast(msg, type) {
+  let ex = document.getElementById("_toast");
+  if (ex) ex.remove();
+  const colors = { danger:"#c0392b", warn:"#d97706", success:"#1b7a3e" };
+  const t = document.createElement("div");
+  t.id = "_toast";
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:"fixed", bottom:"30px", left:"50%", transform:"translateX(-50%)",
+    padding:"12px 28px", borderRadius:"8px", zIndex:"9999",
+    fontFamily:"'Source Sans 3',sans-serif", fontSize:"15px", fontWeight:"600",
+    background: colors[type] || "#333", color:"#fff",
+    boxShadow:"0 4px 16px rgba(0,0,0,0.2)", whiteSpace:"nowrap"
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
