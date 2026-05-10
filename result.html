@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Result | SSLC IT Exam 2027</title>
+  <link rel="stylesheet" href="css/exam.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="exam-header">
+  <div class="logo-circle">IT</div>
+  <div class="header-text">
+    <h1>SSLC IT Public Examination 2027</h1>
+    <p>Result & Performance Report</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- RESULT ACCESS CARD -->
+  <div class="card" id="accessCard">
+    <div class="section-title">
+      <div class="icon">🔒</div>
+      Result Access
+    </div>
+    <div class="section-sub">Enter the result password to view marks and performance report.</div>
+
+    <div class="pwd-group">
+      <label for="rpwd">Result Password</label>
+      <input type="password" id="rpwd" placeholder="••••••" autocomplete="off"
+             onkeydown="if(event.key==='Enter') showResult()">
+    </div>
+
+    <div class="btn-wrap">
+      <button class="btn btn-primary" onclick="showResult()">
+        📊 &nbsp;View Result
+      </button>
+    </div>
+  </div>
+
+  <!-- RESULT OUTPUT (hidden initially) -->
+  <div id="resultSection" style="display:none">
+
+    <!-- SCORE HERO -->
+    <div class="score-hero">
+      <div class="score-value" id="heroScore">—</div>
+      <div class="score-label">Total Score out of 10</div>
+      <div id="gradeBox"></div>
+    </div>
+
+    <!-- BREAKDOWN -->
+    <div class="score-breakdown">
+      <div class="score-card">
+        <div class="sc-value" id="mcqScore">—</div>
+        <div class="sc-label">MCQ Score<br><small style="font-size:10px">(out of 5)</small></div>
+      </div>
+      <div class="score-card">
+        <div class="sc-value" id="vsaScore">—</div>
+        <div class="sc-label">VSA Score<br><small style="font-size:10px">(out of 5)</small></div>
+      </div>
+      <div class="score-card">
+        <div class="sc-value" id="totalScore">—</div>
+        <div class="sc-label">Total<br><small style="font-size:10px">(out of 10)</small></div>
+      </div>
+    </div>
+
+    <!-- WRONG ANSWERS -->
+    <div class="wrong-list" id="wrongListWrap">
+      <div class="wrong-list-header">❌ Incorrect / Missing Answers</div>
+      <div id="wrongListBody"></div>
+    </div>
+
+    <!-- PRINT BUTTON -->
+    <div class="btn-wrap">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print Report</button>
+    </div>
+
+  </div>
+
+  <!-- TEACHER RESET CARD -->
+  <div class="card" id="resetCard" style="margin-top:10px;">
+    <div class="section-title">
+      <div class="icon">🔧</div>
+      Teacher – Reset Exam
+    </div>
+    <div class="section-sub">
+      Reset clears all stored exam data so the next student can start fresh.
+      This action requires the teacher reset password.
+    </div>
+
+    <div class="alert alert-warn">
+      ⚠️ &nbsp;<span>This will permanently erase the current student's answers and timer.</span>
+    </div>
+
+    <div class="pwd-group">
+      <label for="resetPwd">Reset Password</label>
+      <input type="password" id="resetPwd" placeholder="••••••" autocomplete="off"
+             onkeydown="if(event.key==='Enter') resetExam()">
+    </div>
+
+    <div class="btn-wrap">
+      <button class="btn btn-danger" onclick="resetExam()">
+        🗑 &nbsp;Reset Exam Data
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="exam-footer">
+  SSLC IT Public Exam 2027 &nbsp;·&nbsp; Result Portal &nbsp;·&nbsp; Kerala
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const CONFIG = {
+  resultPassword: "2",   // 🔴 CHANGE RESULT PASSWORD HERE
+  mcqMarks:       0.5,
+  vsaHalfMark:    0.5
+};
+
+const RESET_PASSWORD = "Alees";  // 🔴 CHANGE RESET PASSWORD HERE
+
+/* ===== CORRECT ANSWERS ===== */
+const MCQ_ANSWERS = {
+  mcq1:  "D",
+  mcq2:  "A",
+  mcq3:  "A",
+  mcq4:  "C",
+  mcq5:  "D",
+  mcq6:  "C",
+  mcq7:  "B",
+  mcq8:  "C",
+  mcq9:  "A",
+  mcq10: "C"
+};
+
+const VSA_ANSWERS = {
+  vsa1: ["A", "B"],
+  vsa2: ["A", "E"],
+  vsa3: ["B", "E"],
+  vsa4: ["C", "E"],
+  vsa5: ["A", "E"]
+};
+
+/* ===== SHOW RESULT ===== */
+function showResult() {
+  const pwd = document.getElementById("rpwd").value;
+
+  if (!pwd) { toast("Enter the result password.", "warn"); return; }
+  if (pwd !== CONFIG.resultPassword) {
+    toast("Incorrect result password.", "danger");
+    document.getElementById("rpwd").value = "";
+    return;
+  }
+
+  const mcqData = JSON.parse(localStorage.getItem("mcqAnswers")) || {};
+  const vsaData = JSON.parse(localStorage.getItem("vsaAnswers")) || {};
+
+  let mcqScore = 0;
+  let vsaScore = 0;
+  const wrongItems = [];
+
+  /* MCQ */
+  for (let q in MCQ_ANSWERS) {
+    if (mcqData[q] === MCQ_ANSWERS[q]) {
+      mcqScore += CONFIG.mcqMarks;
+    } else {
+      wrongItems.push({
+        label: q.toUpperCase(),
+        type: "MCQ",
+        yours: mcqData[q] || "Not answered",
+        correct: MCQ_ANSWERS[q]
+      });
+    }
+  }
+
+  /* VSA */
+  for (let q in VSA_ANSWERS) {
+    const correct  = VSA_ANSWERS[q];
+    const selected = vsaData[q] || [];
+    const missing  = [];
+
+    correct.forEach(opt => {
+      if (selected.includes(opt)) {
+        vsaScore += CONFIG.vsaHalfMark;
+      } else {
+        missing.push(opt);
+      }
+    });
+
+    // Only one row per question, showing all missing options together
+    if (missing.length > 0) {
+      wrongItems.push({
+        label:    q.toUpperCase(),
+        type:     "VSA",
+        yours:    selected.length > 0 ? selected.join(", ") : "Not answered",
+        correct:  correct.join(", "),
+        missing:  missing.join(", ")
+      });
+    }
+  }
+
+  const total = mcqScore + vsaScore;
+
+  /* Populate score boxes */
+  document.getElementById("heroScore").textContent = total.toFixed(1);
+  document.getElementById("mcqScore").textContent  = mcqScore.toFixed(1);
+  document.getElementById("vsaScore").textContent  = vsaScore.toFixed(1);
+  document.getElementById("totalScore").textContent = total.toFixed(1);
+
+  /* Grade badge */
+  const pct   = (total / 10) * 100;
+  let grade, gradeClass;
+  if (pct >= 90)      { grade = "A+"; gradeClass = "pass"; }
+  else if (pct >= 80) { grade = "A";  gradeClass = "pass"; }
+  else if (pct >= 70) { grade = "B+";  gradeClass = "pass"; }
+ else if (pct >= 60) { grade = "B";  gradeClass = "pass"; }
+ else if (pct >= 50) { grade = "C+";  gradeClass = "pass"; }
+ else if (pct >= 40) { grade = "C";  gradeClass = "pass"; }
+ else if (pct >= 30) { grade = "D+";  gradeClass = "pass"; }
+ else if (pct >= 20) { grade = "D";  gradeClass = "fail"; }
+  else                { grade = "E";  gradeClass = "fail"; }
+
+  document.getElementById("gradeBox").innerHTML =
+    `<span class="score-grade ${gradeClass}">Grade: ${grade} &nbsp;|&nbsp; ${pct.toFixed(0)}%</span>`;
+
+  /* Wrong list */
+  const body = document.getElementById("wrongListBody");
+  if (wrongItems.length === 0) {
+    body.innerHTML = `<div style="padding:20px; text-align:center; color:var(--success); font-weight:600;">
+      🎉 All answers correct! Perfect score.
+    </div>`;
+  } else {
+    body.innerHTML = wrongItems.map(w => {
+      if (w.type === "MCQ") {
+        return `<div class="wrong-item">
+          <span class="wi-tag">MCQ · ${w.label}</span>
+          <div class="wi-detail">
+            Your answer: <strong>${w.yours}</strong>
+            &nbsp;→&nbsp;
+            Correct: <span class="correct">${w.correct}</span>
+          </div>
+        </div>`;
+      } else {
+        return `<div class="wrong-item">
+          <span class="wi-tag">VSA · ${w.label}</span>
+          <div class="wi-detail">
+            Your answer: <strong>${w.yours}</strong>
+            &nbsp;→&nbsp;
+            Correct: <span class="correct">${w.correct}</span>
+            &nbsp;·&nbsp;
+            <span style="color:var(--danger);font-size:13px;">Missing: ${w.missing}</span>
+          </div>
+        </div>`;
+      }
+    }).join("");
+  }
+
+  /* Show result, hide access card */
+  document.getElementById("accessCard").style.display = "none";
+  document.getElementById("resultSection").style.display = "block";
+  document.getElementById("resultSection").scrollIntoView({ behavior: "smooth" });
+}
+
+/* ===== RESET EXAM ===== */
+function resetExam() {
+  const pwd = document.getElementById("resetPwd").value;
+  if (!pwd) { toast("Enter the reset password.", "warn"); return; }
+
+  if (pwd !== RESET_PASSWORD) {
+    toast("Incorrect reset password.", "danger");
+    document.getElementById("resetPwd").value = "";
+    return;
+  }
+
+  localStorage.removeItem("mcqAnswers");
+  localStorage.removeItem("vsaAnswers");
+  localStorage.removeItem("remainingTime");
+
+  toast("Exam data cleared. Ready for next student.", "success");
+  setTimeout(() => window.location.href = "index.html", 1800);
+}
+
+/* ===== TOAST ===== */
+function toast(msg, type) {
+  let ex = document.getElementById("toast");
+  if (ex) ex.remove();
+  const colors = {
+    danger:  "#c0392b",
+    warn:    "#d97706",
+    success: "#1b7a3e"
+  };
+  const t = document.createElement("div");
+  t.id = "toast";
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position: "fixed", bottom: "30px", left: "50%",
+    transform: "translateX(-50%)",
+    padding: "12px 28px", borderRadius: "8px",
+    fontFamily: "'Source Sans 3', sans-serif",
+    fontSize: "15px", fontWeight: "600",
+    background: colors[type] || "#333",
+    color: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+    zIndex: "999", whiteSpace: "nowrap"
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
