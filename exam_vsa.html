@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Part B – VSA | SSLC IT Exam 2026</title>
+  <link rel="stylesheet" href="css/exam.css">
+</head>
+<body>
+
+<header class="exam-header">
+  <div class="logo-circle">IT</div>
+  <div class="header-text">
+    <h1>SSLC IT Public Examination 2026</h1>
+    <p>Part B – Very Short Answer Questions</p>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div id="timer">⏱ Loading…</div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">0 of 5 completed</div>
+
+    <div class="section-title">
+      <div class="icon">B</div>
+      Part B — Very Short Answer Questions
+    </div>
+    <div class="section-sub">
+      Each question carries <strong>1 mark</strong> (0.5 per correct option).
+      Select <strong>exactly 2 options</strong> per question.
+      &nbsp;·&nbsp; <span class="badge badge-info">5 Questions</span>
+    </div>
+
+    <div id="vsaContainer"></div>
+
+    <div class="btn-wrap">
+      <button class="btn btn-primary" onclick="confirmSubmit()">
+        ✅ &nbsp;Submit Exam
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal">
+    <h3>Submit Exam?</h3>
+    <p id="confirmMsg">Are you sure? This will finalize your exam.</p>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" onclick="submitVSA()">Yes, Finalize</button>
+      <button class="btn btn-outline" onclick="closeModal()">Go Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIME UP MODAL — no dismiss button intentionally -->
+<div class="overlay" id="timeupOverlay">
+  <div class="modal">
+    <h3>⏰ Time is Up!</h3>
+    <p>Your answers have been saved. Submitting your exam now…</p>
+  </div>
+</div>
+
+<div class="exam-footer">
+  SSLC IT Public Exam 2026 &nbsp;·&nbsp; Part B of 2
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const TOTAL_VSA = 5;
+
+/* ===== PAGE GUARD =====
+   Only allow access if stage is "vsa".
+   Any other stage → redirect to the correct page. */
+(function guard() {
+  const stage = localStorage.getItem("examStage");
+  if (!stage)           window.location.replace("index.html");
+  if (stage === "mcq")  window.location.replace("exam_mcq.html");
+  if (stage === "done") window.location.replace("result.html");
+})();
+
+/* ===================================================
+   WALL-CLOCK TIMER (same examEndTime set by MCQ page)
+   If MCQ ran out of time, remaining = 0 or negative
+   → VSA auto-submits immediately (correct behaviour)
+   If student submitted MCQ early, remaining time is used
+=================================================== */
+const examEndTime = parseInt(localStorage.getItem("examEndTime")) || Date.now();
+
+/* ===== BLOCK BACK BUTTON ===== */
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => {
+  history.pushState(null, "", location.href);
+});
+
+/* ===== TIMER ===== */
+const timerEl = document.getElementById("timer");
+let autoSubmitted = false;
+
+const timerInterval = setInterval(() => {
+  const remaining = examEndTime - Date.now();
+
+  if (remaining <= 0) {
+    clearInterval(timerInterval);
+    if (!autoSubmitted) {
+      autoSubmitted = true;
+      timerEl.innerHTML = `⏱ Time Remaining: <strong>0:00</strong>`;
+      timerEl.classList.add("warning");
+      document.getElementById("timeupOverlay").classList.add("active");
+      setTimeout(() => forceSubmitVSA(), 1500);
+    }
+    return;
+  }
+
+  const totalSec = Math.ceil(remaining / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  timerEl.innerHTML = `⏱ Time Remaining: <strong>${m}:${s.toString().padStart(2,"0")}</strong>`;
+  timerEl.classList.toggle("warning", remaining <= 120000);
+}, 500);
+
+/* ===== BUILD QUESTIONS ===== */
+const container = document.getElementById("vsaContainer");
+for (let i = 1; i <= TOTAL_VSA; i++) {
+  const div = document.createElement("div");
+  div.className = "question";
+  div.id = `q_vsa${i}`;
+  const options = ["A","B","C","D","E"].map(opt => `
+    <label class="option-label">
+      <input type="checkbox" name="vsa${i}" value="${opt}"
+             onchange="limitSelection(this); updateProgress()"> ${opt}
+    </label>`).join("");
+  div.innerHTML = `
+    <div class="question-number">VSA ${i}</div>
+    <p class="qtext">VSA Question ${i}</p>
+    <img src="images/vsa/q${i}.png" alt="VSA Question ${i}" loading="lazy" onerror="this.style.display='none'">
+    <div class="options">${options}</div>
+    <div class="sel-count" id="sel${i}" style="font-size:13px;color:var(--muted);margin-top:10px;">
+      Selected: 0 / 2
+    </div>`;
+  container.appendChild(div);
+}
+
+/* ===== LIMIT TO 2 ===== */
+function limitSelection(checkbox) {
+  const name = checkbox.name;
+  const checked = document.querySelectorAll(`input[name="${name}"]:checked`);
+  if (checked.length > 2) checkbox.checked = false;
+  const num = name.replace("vsa","");
+  const count = document.querySelectorAll(`input[name="${name}"]:checked`).length;
+  const el = document.getElementById(`sel${num}`);
+  el.textContent = `Selected: ${count} / 2`;
+  el.style.color = count === 2 ? "var(--success)" : "var(--muted)";
+  el.style.fontWeight = count === 2 ? "600" : "400";
+}
+
+/* ===== PROGRESS ===== */
+function updateProgress() {
+  let done = 0;
+  for (let i = 1; i <= TOTAL_VSA; i++) {
+    if (document.querySelectorAll(`input[name="vsa${i}"]:checked`).length === 2) done++;
+  }
+  document.getElementById("progressBar").style.width = (done / TOTAL_VSA * 100) + "%";
+  document.getElementById("progressLabel").textContent = `${done} of ${TOTAL_VSA} completed`;
+}
+
+/* ===== CONFIRM (manual submit — validates 2 per question) ===== */
+function confirmSubmit() {
+  const incomplete = [];
+  for (let i = 1; i <= TOTAL_VSA; i++) {
+    if (document.querySelectorAll(`input[name="vsa${i}"]:checked`).length !== 2) incomplete.push(i);
+  }
+  const msgEl = document.getElementById("confirmMsg");
+  if (incomplete.length > 0) {
+    msgEl.innerHTML = `⚠️ Question(s) <strong>${incomplete.join(", ")}</strong> need exactly 2 options selected.`;
+  } else {
+    msgEl.textContent = "All questions answered. Finalize and submit your exam?";
+  }
+  document.getElementById("confirmOverlay").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("confirmOverlay").classList.remove("active");
+}
+
+/* ===== SUBMIT (manual — requires exactly 2 per question) ===== */
+function submitVSA() {
+  clearInterval(timerInterval);
+  for (let i = 1; i <= TOTAL_VSA; i++) {
+    if (document.querySelectorAll(`input[name="vsa${i}"]:checked`).length !== 2) {
+      closeModal();
+      const q = document.getElementById(`q_vsa${i}`);
+      q.scrollIntoView({ behavior: "smooth" });
+      q.style.border = "2px solid var(--danger)";
+      setTimeout(() => { q.style.border = ""; }, 2000);
+      return;
+    }
+  }
+  saveAndRedirect();
+}
+
+/* ===== FORCE SUBMIT (auto on time-up — saves whatever is selected) ===== */
+function forceSubmitVSA() {
+  clearInterval(timerInterval);
+  saveAndRedirect();
+}
+
+/* ===== SAVE TO LOCALSTORAGE AND GO TO RESULT ===== */
+function saveAndRedirect() {
+  const vsaAnswers = {};
+  document.querySelectorAll("input[type=checkbox]:checked").forEach(cb => {
+    if (!vsaAnswers[cb.name]) vsaAnswers[cb.name] = [];
+    vsaAnswers[cb.name].push(cb.value);
+  });
+  localStorage.setItem("vsaAnswers", JSON.stringify(vsaAnswers));
+  localStorage.setItem("examStage", "done"); // advance stage — exam complete
+  localStorage.removeItem("examEndTime");
+  window.location.replace("result.html");
+}
+</script>
+</body>
+</html>
