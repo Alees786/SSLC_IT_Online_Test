@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exam Result | SSLC IT Exam 2026</title>
+  <title>Exam Result | SSLC IT Exam 2027</title>
   <link rel="stylesheet" href="css/exam.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
   <!-- TAP THIS LOGO 5 TIMES TO OPEN TEACHER PANEL -->
   <div class="logo-circle" id="secretTap" style="cursor:default; user-select:none;">IT</div>
   <div class="header-text">
-    <h1>SSLC IT Public Examination 2026</h1>
+    <h1>SSLC IT Model Examination 2027</h1>
     <p>Result &amp; Performance Report</p>
   </div>
 </header>
@@ -146,7 +146,7 @@
 </div>
 
 <div class="exam-footer">
-  SSLC IT Public Exam 2026 &nbsp;·&nbsp; Result Portal &nbsp;·&nbsp; Kerala
+  SSLC IT Model Exam 2027 &nbsp;·&nbsp; Result Portal &nbsp;·&nbsp; Kerala
 </div>
 
 <!-- =====================================================
@@ -402,10 +402,15 @@ function showResult() {
   document.getElementById("totalScore").textContent = total.toFixed(1);
 
   let grade, gradeClass;
-  if (pct >= 80)      { grade = "A+"; gradeClass = "pass"; }
-  else if (pct >= 60) { grade = "A";  gradeClass = "pass"; }
-  else if (pct >= 40) { grade = "B";  gradeClass = "pass"; }
-  else                { grade = "C";  gradeClass = "fail"; }
+    if (pct >= 90)      { grade = "A+"; gradeClass = "pass"; }
+  else if (pct >= 80) { grade = "A";  gradeClass = "pass"; }
+  else if (pct >= 70) { grade = "B+";  gradeClass = "pass"; }
+ else if (pct >= 60) { grade = "B";  gradeClass = "pass"; }
+ else if (pct >= 50) { grade = "C+";  gradeClass = "pass"; }
+ else if (pct >= 40) { grade = "C";  gradeClass = "pass"; }
+ else if (pct >= 30) { grade = "D+";  gradeClass = "pass"; }
+ else if (pct >= 20) { grade = "D";  gradeClass = "fail"; }
+  else                { grade = "E";  gradeClass = "fail"; }
 
   document.getElementById("gradeBox").innerHTML =
     `<span class="score-grade ${gradeClass}">Grade: ${grade} &nbsp;|&nbsp; ${pct.toFixed(0)}%</span>`;
