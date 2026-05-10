@@ -75,15 +75,14 @@ import { getFirestore, doc,
          onSnapshot }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* 🔴 SAME CONFIG AS result.html */
-  const firebaseConfig = {
-    apiKey: "AIzaSyCUpkjARbvoFK8UR9MZkMuqTuzZlEM2wXY",
-    authDomain: "c-exam-2027.firebaseapp.com",
-    projectId: "c-exam-2027",
-    storageBucket: "c-exam-2027.firebasestorage.app",
-    messagingSenderId: "35592355419",
-    appId: "1:35592355419:web:9b6cf363bbb143e3b3497e"
-  };
-
+const firebaseConfig = {
+  apiKey:            "AIzaSyCUpkjARbvoFK8UR9MZkMuqTuzZlEM2wXY",
+  authDomain:        "c-exam-2027.firebaseapp.com",
+  projectId:         "c-exam-2027",
+  storageBucket:     "c-exam-2027.firebasestorage.app",
+  messagingSenderId: "35592355419",
+  appId:             "1:35592355419:web:9b6cf363bbb143e3b3497e"
+};
 const app     = initializeApp(firebaseConfig);
 const db      = getFirestore(app);
 const examRef = doc(db, "exam", "control");
@@ -95,8 +94,9 @@ onSnapshot(examRef, (snap) => {
     const ts        = data.resetAt || 0;
     const lastReset = parseInt(localStorage.getItem("lastResetAt") || "0");
     if (ts > lastReset) {
+      const savedTs = ts;
       localStorage.clear();
-      localStorage.setItem("lastResetAt", ts);
+      localStorage.setItem("lastResetAt", String(savedTs));
       window.location.replace("index.html");
     }
   }
