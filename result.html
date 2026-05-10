@@ -161,14 +161,14 @@ import { getFirestore, doc, setDoc,
    🔴 PASTE YOUR FIREBASE CONFIG HERE
    (from Firebase Console → Project Settings → Your apps)
    ====================================================== */
-  const firebaseConfig = {
-    apiKey: "AIzaSyCUpkjARbvoFK8UR9MZkMuqTuzZlEM2wXY",
-    authDomain: "c-exam-2027.firebaseapp.com",
-    projectId: "c-exam-2027",
-    storageBucket: "c-exam-2027.firebasestorage.app",
-    messagingSenderId: "35592355419",
-    appId: "1:35592355419:web:9b6cf363bbb143e3b3497e"
-  };
+const firebaseConfig = {
+  apiKey:            "AIzaSyCUpkjARbvoFK8UR9MZkMuqTuzZlEM2wXY",
+  authDomain:        "c-exam-2027.firebaseapp.com",
+  projectId:         "c-exam-2027",
+  storageBucket:     "c-exam-2027.firebasestorage.app",
+  messagingSenderId: "35592355419",
+  appId:             "1:35592355419:web:9b6cf363bbb143e3b3497e"
+};
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
@@ -183,21 +183,18 @@ onSnapshot(examRef, (snap) => {
   if (!snap.exists()) return;
   const data = snap.data();
 
-  // Teacher pressed Reset → clear this device and go to start
   if (data.command === "reset") {
     const ts = data.resetAt || 0;
     const lastReset = parseInt(localStorage.getItem("lastResetAt") || "0");
 
-    // Only act if this is a NEW reset (not one we already processed)
     if (ts > lastReset) {
+      const savedTs = ts;
       localStorage.clear();
-      localStorage.setItem("lastResetAt", ts);
-      // Small delay so UI doesn't flash
+      localStorage.setItem("lastResetAt", String(savedTs));
       setTimeout(() => window.location.replace("index.html"), 800);
     }
   }
 
-  // Update teacher panel lock status if open
   updateLockStatus(data.state);
 });
 
