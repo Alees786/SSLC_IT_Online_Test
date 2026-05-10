@@ -111,10 +111,11 @@ onSnapshot(examRef, (snap) => {
     const ts        = data.resetAt || 0;
     const lastReset = parseInt(localStorage.getItem("lastResetAt") || "0");
     if (ts > lastReset) {
+      // Save FIRST before clearing — so the loop doesn't repeat
+      const savedTs = ts;
       localStorage.clear();
-      localStorage.setItem("lastResetAt", ts);
-      // Already on index — just reload to clear any in-memory state
-      window.location.reload();
+      localStorage.setItem("lastResetAt", String(savedTs));
+      // Already on index.html — no reload needed, just stay here
     }
   }
 });
@@ -137,8 +138,10 @@ function startExam() {
   const pwd = document.getElementById("pwd").value;
   if (!pwd) { showToast("Please enter the exam password.", "warn"); return; }
   if (pwd === CONFIG.startPassword) {
-    // Wipe everything and set stage
+    // Preserve lastResetAt so old reset signal isn't re-processed
+    const lastResetAt = localStorage.getItem("lastResetAt");
     localStorage.clear();
+    if (lastResetAt) localStorage.setItem("lastResetAt", lastResetAt);
     localStorage.setItem("examStage", "mcq");
     window.location.replace("exam_mcq.html");
   } else {
